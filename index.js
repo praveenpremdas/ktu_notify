@@ -7,7 +7,10 @@ const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const KTU_URL = 'https://ktu.edu.in/Menu/announcements';
 
 async function scrapeKTUAnnouncements() {
-  const browser = await puppeteer.launch({ headless: "new" });
+    const browser = await puppeteer.launch({
+        headless: "new",
+        args: ["--no-sandbox", "--disable-setuid-sandbox"]
+    });
   const page = await browser.newPage();
   await page.goto(KTU_URL, { waitUntil: 'networkidle2' });
 
