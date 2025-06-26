@@ -2,9 +2,10 @@
   "name": "ktu-notify",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node src/index.js"
   },
   "keywords": [],
   "author": "",
@@ -13,7 +14,9 @@
     "axios": "^1.10.0",
     "cheerio": "^1.1.0",
     "dotenv": "^16.5.0",
+    "express": "^5.1.0",
     "fs": "0.0.1-security",
+    "mongoose": "^8.16.0",
     "puppeteer": "^24.10.2"
   }
 }
