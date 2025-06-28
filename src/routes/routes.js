@@ -5,6 +5,7 @@ const logConfigController = require('../controllers/logConfigController');
 
 router.post('/updateTelegramConfig', telegramConfigController.updateConfig);
 router.get('/getTelegramConfigs', telegramConfigController.getAllConfigs);
+router.delete('/deleteTelegramConfig/:configKey', telegramConfigController.deleteTelegramConfig);
 
 router.post('/updateLogConfig', logConfigController.updateLogConfig);
 router.get('/getLogConfig', logConfigController.getLogConfig); 

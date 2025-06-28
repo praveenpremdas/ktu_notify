@@ -40,3 +40,22 @@ exports.getAllConfigs = async (req, res) => {
     return res.status(500).json({ error: 'Internal Server Error' });
   }
 };
+
+exports.deleteTelegramConfig = async (req, res) => {
+  try {
+    const { configKey } = req.params;
+
+     const updated = await TelegramConfig.findOneAndUpdate(
+      {},
+      { $unset: { [`configs.${configKey}`]: "" } },
+      { new: true }
+    );
+
+    if (!updated) return res.status(404).json({ message: "Config not found" });
+
+    res.status(200).json({ message: "Deleted successfully", updated });
+  } catch (err) {
+    console.error('Error fetching configs:', err);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
