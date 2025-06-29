@@ -23,11 +23,11 @@ const PORT = process.env.PORT || 3001;
 const startServer = async () => {
   await connectDB();
 
-  // Schedule runCronJob
-  cron.schedule('*/3 * * * *', () => {
-    console.log(`[CRON] Executing runCronJob at ${new Date().toLocaleTimeString()}`);
-    runCronJob();
-  });
+  // // Schedule runCronJob
+  // cron.schedule('*/3 * * * *', () => {
+  //   console.log(`[CRON] Executing runCronJob at ${new Date().toLocaleTimeString()}`);
+  //   runCronJob();
+  // });
 
   app.listen(PORT, () => {
     console.log(`🚀 .env.${process.env.NODE_ENV || 'development'} running on port ${PORT}`);
