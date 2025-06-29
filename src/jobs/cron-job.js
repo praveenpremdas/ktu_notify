@@ -172,7 +172,7 @@ async function runCronJob() {
       if (config.notificationEnabled) {
         const announcements = await scrapeKTUAnnouncements(config.notificationURL);
 
-        for (const ann of announcements) {
+        for (const ann of announcements.slice(0, 5)) {
           const exists = await Notification.findOne({
             telegramConfigId: config._id,
             title: ann.title,
