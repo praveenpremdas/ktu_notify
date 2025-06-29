@@ -1,38 +1,36 @@
+const bcrypt = require('bcryptjs');
 const UserSchema = require("../models/userschema");
-
-const formatDate = (date) => {
-  return new Intl.DateTimeFormat("en-IN", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
-};
 
 exports.savePasswordDetails = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Validation
     if (!email || !password) {
       return res.json({ message: "Email and password are required." });
     }
 
-    // Check if email already exists (optional - remove if not needed)
     const existing = await UserSchema.findOne({ email });
     if (existing) {
       return res.json({ message: "Email already exists." });
     }
 
-    const newEntry = new UserSchema({ email, password });
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    const savedData = await newEntry.save();
+    const newUser = new UserSchema({
+      email,
+      password: hashedPassword,
+      state: 1
+    });
+
+    const savedUser = await newUser.save();
 
     res.status(201).json({
       message: "User password saved successfully.",
       data: {
-        id: savedData._id,
-        email: savedData.email,
-        createdAt: formatDate(savedData.createdAt),
-        updatedAt: formatDate(savedData.updatedAt),
+        id: savedUser._id,
+        email: savedUser.email,
+        createdAt: savedUser.createdAt,
       },
     });
   } catch (error) {
@@ -40,3 +38,29 @@ exports.savePasswordDetails = async (req, res) => {
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
+exports.loginUser = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const user = await UserSchema.findOne({ email });
+
+    if (!user) {
+      return res.json({ message: "User not found." });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (!isMatch) {
+      return res.json({ message: "Invalid credentials." });
+    }
+
+    // You can generate a token or session here if needed
+
+    res.status(200).json({ message: "Login successful", userId: user._id });
+  } catch (error) {
+    console.error("Login error:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
