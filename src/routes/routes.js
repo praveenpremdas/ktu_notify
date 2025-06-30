@@ -12,8 +12,8 @@ router.post('/updateLogConfig', logConfigController.updateLogConfig);
 router.get('/getLogConfig', logConfigController.getLogConfig); 
 
 router.post('/createpassword',usercontroller.savePasswordDetails); 
-
 router.post('/login', usercontroller.loginUser);
+router.get('/passwordStatus', usercontroller.passwordStatus);
 
 
 module.exports = router;

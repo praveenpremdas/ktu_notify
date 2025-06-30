@@ -64,3 +64,18 @@ exports.loginUser = async (req, res) => {
   }
 };
 
+exports.passwordStatus = async (req, res) => {
+  try {
+    const userExists = await UserSchema.exists({});
+
+    if (userExists) {
+      return res.json({ userExist: true });
+    } else {
+      return res.json({ userExist: false });
+    }
+  } catch (error) {
+    console.log("user check error:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
