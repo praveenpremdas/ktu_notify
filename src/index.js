@@ -3,6 +3,7 @@ const dotenv = require('dotenv');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const cron = require('node-cron');
+const pLimit = require('p-limit').default;
 
 const connectDB = require('./database/mongo');
 const telegramRoutes = require('./routes/routes');
@@ -24,47 +25,69 @@ app.use('/api', telegramRoutes);
 
 const PORT = process.env.PORT || 3001;
 
-const safeRun = (fn, jobName) => async () => {
-  const time = new Date().toLocaleTimeString();
-  const logPrefix = `["SCHEDULER"] ${jobName} at ${time}`;
+// Shared limiter (only 1 job runs at a time)
+const limit = pLimit(1);
 
-  try {
-    const config = await LogConfig.findOne();
+// Track last execution to avoid "catch-up"
+const lastExecutionMap = new Map();
 
-    if (config?.enableJobLog) {
-      await sendTelegramMessage(config.botToken, config.channelID, `${logPrefix} started`);
+const safeRun = (fn, jobName, intervalMs) => () => {
+  // Avoid blocking the main thread
+  setImmediate(async () => {
+    const now = Date.now();
+    const lastRun = lastExecutionMap.get(jobName) || 0;
+
+    // Prevent catch-up if last run was recent
+    if (now - lastRun < intervalMs - 1000) {
+      console.log(`[SKIPPED] ${jobName}: last run was too recent`);
+      return;
     }
 
-    await fn();
+    lastExecutionMap.set(jobName, now);
 
-    if (config?.enableJobLog) {
-      await sendTelegramMessage(config.botToken, config.channelID, `${logPrefix} completed`);
-    }
+    const time = new Date().toLocaleTimeString();
+    const logPrefix = `["SCHEDULER"] ${jobName} at ${time}`;
 
-  } catch (err) {
-    console.error(`${logPrefix} failed:`, err.message);
+    await limit(async () => {
+      try {
+        const config = await LogConfig.findOne();
 
-    try {
-      const config = await LogConfig.findOne();
-      if (config?.enableFailureLog) {
-        await sendTelegramMessage(
-          config.botToken,
-          config.channelID,
-          `❌ ${logPrefix} failed:\n${err.message}`
-        );
+        if (config?.enableJobLog) {
+          await sendTelegramMessage(config.botToken, config.channelID, `${logPrefix} started`);
+        }
+
+        await fn();
+
+        if (config?.enableJobLog) {
+          await sendTelegramMessage(config.botToken, config.channelID, `${logPrefix} completed`);
+        }
+      } catch (err) {
+        console.error(`${logPrefix} failed:`, err.message);
+
+        try {
+          const config = await LogConfig.findOne();
+          if (config?.enableFailureLog) {
+            await sendTelegramMessage(
+              config.botToken,
+              config.channelID,
+              `❌ ${logPrefix} failed:\n${err.message}`
+            );
+          }
+        } catch (innerErr) {
+          console.error("Failed to fetch config or send Telegram error:", innerErr.message);
+        }
       }
-    } catch (innerErr) {
-      console.error("Failed to fetch config or send Telegram error:", innerErr.message);
-    }
-  }
+    });
+  });
 };
 
 const startServer = async () => {
   await connectDB();
 
-  cron.schedule('*/3 * * * *', safeRun(runCronJob, "ktu_notification"));
-  cron.schedule('*/5 * * * *', safeRun(runCalendarCronJob, "academic_calendar"));
-  cron.schedule('*/5 * * * *', safeRun(runTimetableCronJob, "academic_timetable"));
+  // Schedule with interval (in ms) for each job
+  cron.schedule('*/3 * * * *', safeRun(runCronJob, 'ktu_notification', 3 * 60 * 1000));
+  cron.schedule('*/5 * * * *', safeRun(runCalendarCronJob, 'academic_calendar', 5 * 60 * 1000));
+  cron.schedule('*/7 * * * *', safeRun(runTimetableCronJob, 'academic_timetable', 7 * 60 * 1000));
 
   app.listen(PORT, () => {
     console.log(`🚀 .env.${process.env.NODE_ENV || 'development'} running on port ${PORT}`);
