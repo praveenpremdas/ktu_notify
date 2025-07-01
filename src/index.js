@@ -85,7 +85,7 @@ const startServer = async () => {
   await connectDB();
 
   // Schedule with interval (in ms) for each job
-  cron.schedule('*/3 * * * *', safeRun(runCronJob, 'ktu_notification', 3 * 60 * 1000));
+  cron.schedule('*/1 * * * *', safeRun(runCronJob, 'ktu_notification', 3 * 60 * 1000));
   cron.schedule('*/5 * * * *', safeRun(runCalendarCronJob, 'academic_calendar', 5 * 60 * 1000));
   cron.schedule('*/7 * * * *', safeRun(runTimetableCronJob, 'academic_timetable', 7 * 60 * 1000));
 
