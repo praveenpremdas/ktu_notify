@@ -43,37 +43,49 @@ function waitForDownload(downloadPath, timeoutMs = 60000) {
 }
 
 async function scrapeTimetable(url) {
-  const browser = await puppeteer.launch({ headless: "new" });
-  const page = await browser.newPage();
-  await page.goto(url, { waitUntil: "networkidle2" });
+  let browser;
+  try {
+    browser = await puppeteer.launch({ 
+      headless: "new",
+      args: ["--no-sandbox", "--disable-setuid-sandbox", '--disable-dev-shm-usage']
+    });
+    const page = await browser.newPage();
+    await page.goto(url, { waitUntil: "networkidle2" });
 
-  // Navigate to timetable page
-  await page.evaluate(() => {
-    const link = Array.from(document.querySelectorAll("a")).find(a =>
-      a.href.includes("/exam/timetable")
+    // Navigate to timetable page
+    await page.evaluate(() => {
+      const link = Array.from(document.querySelectorAll("a")).find(a =>
+        a.href.includes("/exam/timetable")
+      );
+      if (link) link.click();
+    });
+
+    await page.waitForSelector("div.container > div.shadow.row", { timeout: 10000 });
+
+    const updates = await page.$$eval("div.container > div.shadow.row", nodes =>
+      nodes.map(node => {
+        const title = node.querySelector("h6.f-w-bold")?.innerText?.trim() || "";
+        const description = node.querySelector("p")?.innerText?.trim() || "";
+        const encodedValue = node.querySelector("button.btn")?.value || null;
+        return { title, description, encodedValue };
+      })
     );
-    if (link) link.click();
-  });
 
-  await page.waitForSelector("div.container > div.shadow.row", { timeout: 10000 });
-
-  const updates = await page.$$eval("div.container > div.shadow.row", nodes =>
-    nodes.map(node => {
-      const title = node.querySelector("h6.f-w-bold")?.innerText?.trim() || "";
-      const description = node.querySelector("p")?.innerText?.trim() || "";
-      const encodedValue = node.querySelector("button.btn")?.value || null;
-      return { title, description, encodedValue };
-    })
-  );
-
-  await browser.close();
-  return updates.filter(entry => entry.title || entry.description);
+    await browser.close();
+    return updates.filter(entry => entry.title || entry.description);
+  } catch (err) {
+    console.log("Error i function scrapeTimetable: ", err);
+  } finally {
+    if (browser && browser.process() !== null) {
+      await browser.close();
+    }
+  }
 }
 
 async function downloadTimetableFile(url, encodedValue) {
   const browser = await puppeteer.launch({
     headless: "new",
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    args: ["--no-sandbox", "--disable-setuid-sandbox", '--disable-dev-shm-usage'],
   });
 
   const page = await browser.newPage();
@@ -106,13 +118,17 @@ async function downloadTimetableFile(url, encodedValue) {
     }
   }, encodedValue);
 
+  let filePath;
   try {
-    const filePath = await waitForDownload(downloadPath, 60000);
+    filePath = await waitForDownload(downloadPath, 60000);
     await browser.close();
     return filePath;
   } catch (err) {
-    await browser.close();
-    throw err;
+    console.log('error in downloadTimetableFile: ', err);
+  } finally {
+    if (browser && browser.process() !== null) {
+      await browser.close();
+    }
   }
 }
 
