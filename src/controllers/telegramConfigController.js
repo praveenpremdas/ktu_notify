@@ -2,7 +2,6 @@ const TelegramConfig = require('../models/TelegramConfig');
 
 exports.updateConfig = async (req, res) => {
   const incomingConfigs = req.body;
-  console.log(incomingConfigs)
 
   if (!incomingConfigs || typeof incomingConfigs !== 'object') {
     return res.status(400).json({ error: 'Invalid config format' });

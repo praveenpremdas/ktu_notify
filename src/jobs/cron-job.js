@@ -65,77 +65,93 @@ function waitForDownload(downloadPath, timeoutMs = 60000) {
 
 // Download file for a specific announcement
 async function downloadFileForAnnouncement(index, url) {
-  const browser = await puppeteer.launch({
-    headless: "new",
-    args: ["--no-sandbox", "--disable-setuid-sandbox"]
-  });
-
-  const page = await browser.newPage();
-  const downloadPath = path.resolve(__dirname, 'downloads');
-  fs.mkdirSync(downloadPath, { recursive: true });
-
-  const client = await page.target().createCDPSession();
-  await client.send('Page.setDownloadBehavior', {
-    behavior: 'allow',
-    downloadPath
-  });
-
-  await page.goto(url, { waitUntil: 'networkidle2' });
-  await page.waitForSelector('a[href="/Menu/announcements"]');
-  await Promise.all([
-    page.waitForNavigation({ waitUntil: 'networkidle2' }),
-    page.click('a[href="/Menu/announcements"]')
-  ]);
-  await page.waitForSelector('.p-t-15.p-b-15.shadow.row');
-
-  const buttons = await page.$$('.p-t-15.p-b-15.shadow.row button.btn.btn-md.bg-light');
-
-  if (!buttons[index]) {
-    await browser.close();
-    return null;
-  }
-
+  let browser;
   try {
-    const [file] = await Promise.all([
-      waitForDownload(downloadPath, 60000), // 60 sec timeout
-      buttons[index].click(),
+    browser = await puppeteer.launch({
+      headless: "new",
+      args: ["--no-sandbox", "--disable-setuid-sandbox", '--disable-dev-shm-usage']
+    });
+
+    const page = await browser.newPage();
+    const downloadPath = path.resolve(__dirname, 'downloads');
+    fs.mkdirSync(downloadPath, { recursive: true });
+
+    const client = await page.target().createCDPSession();
+    await client.send('Page.setDownloadBehavior', {
+      behavior: 'allow',
+      downloadPath
+    });
+
+    await page.goto(url, { waitUntil: 'networkidle2' });
+    await page.waitForSelector('a[href="/Menu/announcements"]');
+    await Promise.all([
+      page.waitForNavigation({ waitUntil: 'networkidle2' }),
+      page.click('a[href="/Menu/announcements"]')
     ]);
-    await browser.close();
-    return file;
+    await page.waitForSelector('.p-t-15.p-b-15.shadow.row');
+
+    const buttons = await page.$$('.p-t-15.p-b-15.shadow.row button.btn.btn-md.bg-light');
+
+    if (!buttons[index]) {
+      await browser.close();
+      return null;
+    }
+
+    try {
+      const [file] = await Promise.all([
+        waitForDownload(downloadPath, 60000), // 60 sec timeout
+        buttons[index].click(),
+      ]);
+      await browser.close();
+      return file;
+    } catch (err) {
+      await browser.close();
+      console.log('Error in downloadFileForAnnouncement: ', err);
+    }
   } catch (err) {
-    await browser.close();
-    throw err;
+    console.log('Error In downloadFileForAnnouncement: ', err);
+  } finally {
+    if (browser && browser.process() !== null) {
+      await browser.close();
+    }
   }
 }
 
 // Scrape announcement list (no file downloads here)
 async function scrapeKTUAnnouncements(url) {
-  const browser = await puppeteer.launch({
-    headless: "new",
-    args: ["--no-sandbox", "--disable-setuid-sandbox"]
-  });
-
-  const page = await browser.newPage();
-  await page.goto(url, { waitUntil: 'networkidle2' });
-
-  await page.waitForSelector('a[href="/Menu/announcements"]');
-  await Promise.all([
-    page.waitForNavigation({ waitUntil: 'networkidle2' }),
-    page.click('a[href="/Menu/announcements"]')
-  ]);
-  await page.waitForSelector('.p-t-15.p-b-15.shadow.row');
-
-  const announcements = await page.$$eval('.p-t-15.p-b-15.shadow.row', (nodes) => {
-    return nodes.map((row, index) => {
-      const title = row.querySelector('h6')?.innerText.trim() || '';
-      const date = row.querySelector('.fa-calendar')?.parentElement?.innerText.trim() || '';
-      const desc = row.querySelector('p')?.innerText.trim() || '';
-      const hasDownloadButton = row.querySelector('button.btn.btn-md.bg-light');
-      return { title, date, desc, index, hasDownload: !!hasDownloadButton };
+  let browser;
+  let announcements;
+  try {
+    browser = await puppeteer.launch({
+      headless: "new",
+      args: ["--no-sandbox", "--disable-setuid-sandbox", '--disable-dev-shm-usage']
     });
-  });
 
-  await browser.close();
+    const page = await browser.newPage();
+    await page.goto(url, { waitUntil: 'networkidle2' });
+
+    await page.waitForSelector('a[href="/Menu/announcements"]');
+    await Promise.all([
+      page.waitForNavigation({ waitUntil: 'networkidle2' }),
+      page.click('a[href="/Menu/announcements"]')
+    ]);
+    await page.waitForSelector('.p-t-15.p-b-15.shadow.row');
+
+    announcements = await page.$$eval('.p-t-15.p-b-15.shadow.row', (nodes) => {
+      return nodes.map((row, index) => {
+        const title = row.querySelector('h6')?.innerText.trim() || '';
+        const date = row.querySelector('.fa-calendar')?.parentElement?.innerText.trim() || '';
+        const desc = row.querySelector('p')?.innerText.trim() || '';
+        const hasDownloadButton = row.querySelector('button.btn.btn-md.bg-light');
+        return { title, date, desc, index, hasDownload: !!hasDownloadButton };
+      });
+    });
+
+  } catch (err) {
+    console.log('Error In : ', err)
+  } finally {
+      await browser.close();
+  }  
   return announcements;
 }
 

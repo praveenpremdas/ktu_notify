@@ -45,75 +45,96 @@ function waitForDownload(downloadPath, timeoutMs = 60000) {
 
 // Scrape calendar entries
 async function scrapeAcademicCalendar(url) {
-  const browser = await puppeteer.launch({ headless: true });
-  const page = await browser.newPage();
-  await page.goto(url, { waitUntil: "networkidle0" });
+  let browser;
+  try {
+    browser = await puppeteer.launch({ 
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox", '--disable-dev-shm-usage']
+    });
+    const page = await browser.newPage();
+    await page.goto(url, { waitUntil: "networkidle0" });
 
-  // Trigger AJAX load
-  await page.click('#noanim-tab-example-tab-profile');
-  await page.click('#noanim-tab-example-tab-home');
-  await page.waitForSelector('.tab-pane.active.show .row');
+    // Trigger AJAX load
+    await page.click('#noanim-tab-example-tab-profile');
+    await page.click('#noanim-tab-example-tab-home');
+    await page.waitForSelector('.tab-pane.active.show .row');
 
-  const items = await page.evaluate(() => {
-    const rows = Array.from(document.querySelectorAll('.tab-pane.active.show .row'));
-    return rows.map(row => {
-      const title = row.querySelector('.m-l-10')?.childNodes[0]?.textContent?.trim() || null;
-      const date = row.querySelector('label + span')?.textContent?.trim() || null;
-      const encoded = row.querySelector('button')?.value?.trim();
-      const downloadLink = encoded ? `https://ktu.edu.in/eu/att/attachments.htm?download=${encoded}` : null;
-      return { title, date, downloadLink, value: encoded };
-    }).filter(entry => entry.title && entry.date && entry.downloadLink);
-  });
-  await browser.close();
-  return items;
+    const items = await page.evaluate(() => {
+      const rows = Array.from(document.querySelectorAll('.tab-pane.active.show .row'));
+      return rows.map(row => {
+        const title = row.querySelector('.m-l-10')?.childNodes[0]?.textContent?.trim() || null;
+        const date = row.querySelector('label + span')?.textContent?.trim() || null;
+        const encoded = row.querySelector('button')?.value?.trim();
+        const downloadLink = encoded ? `https://ktu.edu.in/eu/att/attachments.htm?download=${encoded}` : null;
+        return { title, date, downloadLink, value: encoded };
+      }).filter(entry => entry.title && entry.date && entry.downloadLink);
+    });
+    await browser.close();
+    return items;
+  } catch (err) {
+    console.log('Error In : scrapeAcademicCalendar', err);
+  } finally {
+    if (browser && browser.process() !== null) {
+      await browser.close();
+    }
+  }
 }
 
 // 🛠 Fixed: Download using value (via actual button click)
 async function downloadCalendarFile(url, encodedValue) {
-  const browser = await puppeteer.launch({
-    headless: "new",
-    args: ["--no-sandbox", "--disable-setuid-sandbox"]
-  });
+  let browser;
+   try {
+      browser = await puppeteer.launch({
+      headless: "new",
+      args: ["--no-sandbox", "--disable-setuid-sandbox", '--disable-dev-shm-usage']
+    });
 
-  const page = await browser.newPage();
-  const downloadPath = path.resolve(__dirname, 'downloads');
-  fs.mkdirSync(downloadPath, { recursive: true });
+    const page = await browser.newPage();
+    const downloadPath = path.resolve(__dirname, 'downloads');
+    fs.mkdirSync(downloadPath, { recursive: true });
 
-  const client = await page.target().createCDPSession();
-  await client.send('Page.setDownloadBehavior', {
-    behavior: 'allow',
-    downloadPath
-  });
+    const client = await page.target().createCDPSession();
+    await client.send('Page.setDownloadBehavior', {
+      behavior: 'allow',
+      downloadPath
+    });
 
-  await page.goto(url, { waitUntil: 'networkidle2' });
+    await page.goto(url, { waitUntil: 'networkidle2' });
 
-  // Click to load the relevant section (if needed again)
-  try {
-    await page.click('#noanim-tab-example-tab-profile');
-    await page.click('#noanim-tab-example-tab-home');
-    await page.waitForSelector('.tab-pane.active.show .row', { timeout: 5000 });
-  } catch (e) {
-    console.warn("Tab switch during download setup failed (may already be loaded).");
-  }
-
-  // Wait and click the exact button by its value
-  await page.evaluate((val) => {
-    const buttons = Array.from(document.querySelectorAll('button.btn'));
-    const btn = buttons.find(b => b.value === val);
-    if (btn) {
-      btn.scrollIntoView();
-      btn.click();
+    // Click to load the relevant section (if needed again)
+    try {
+      await page.click('#noanim-tab-example-tab-profile');
+      await page.click('#noanim-tab-example-tab-home');
+      await page.waitForSelector('.tab-pane.active.show .row', { timeout: 5000 });
+    } catch (e) {
+      console.warn("Tab switch during download setup failed (may already be loaded).");
     }
-  }, encodedValue);
 
-  try {
-    const filePath = await waitForDownload(downloadPath, 60000);
-    await browser.close();
-    return filePath;
-  } catch (err) {
-    await browser.close();
-    throw err;
-  }
+    // Wait and click the exact button by its value
+    await page.evaluate((val) => {
+      const buttons = Array.from(document.querySelectorAll('button.btn'));
+      const btn = buttons.find(b => b.value === val);
+      if (btn) {
+        btn.scrollIntoView();
+        btn.click();
+      }
+    }, encodedValue);
+
+    try {
+      const filePath = await waitForDownload(downloadPath, 60000);
+      await browser.close();
+      return filePath;
+    } catch (err) {
+      await browser.close();
+      console.log('Error In downloadCalendarFile: ', err)
+    }
+    } catch (err) {
+      console.log('Error In : scrapeAcademicCalendar', err);
+    } finally {
+      if (browser && browser.process() !== null) {
+        await browser.close();
+      }
+    }
 }
 
 // Send Telegram message or document
