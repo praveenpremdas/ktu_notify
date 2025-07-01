@@ -34,7 +34,7 @@ exports.savePasswordDetails = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error saving password details:", error);
+    console.log("Error saving password details:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
@@ -59,7 +59,7 @@ exports.loginUser = async (req, res) => {
 
     res.status(200).json({ message: "Login successful", userId: user._id });
   } catch (error) {
-    console.error("Login error:", error);
+    console.log("Login error:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 };

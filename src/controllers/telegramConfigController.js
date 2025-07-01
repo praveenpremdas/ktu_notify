@@ -35,7 +35,7 @@ exports.getAllConfigs = async (req, res) => {
 
     return res.status(200).json({ configs });
   } catch (err) {
-    console.error('Error fetching configs:', err);
+    console.log('Error fetching configs:', err);
     return res.status(500).json({ error: 'Internal Server Error' });
   }
 };
@@ -54,7 +54,7 @@ exports.deleteTelegramConfig = async (req, res) => {
 
     res.status(200).json({ message: "Deleted successfully", updated });
   } catch (err) {
-    console.error('Error fetching configs:', err);
+    console.log('Error fetching configs:', err);
     return res.status(500).json({ error: 'Internal Server Error' });
   }
 };

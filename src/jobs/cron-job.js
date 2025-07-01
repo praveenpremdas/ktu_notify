@@ -221,7 +221,7 @@ async function runCronJob() {
       }
     }
   } catch (err) {
-    console.error("Error:", err);
+    console.log("Error:", err);
   }
 
   console.log("Cron job completed");

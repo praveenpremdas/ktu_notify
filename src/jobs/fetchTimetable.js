@@ -196,7 +196,7 @@ async function runTimetableCronJob() {
       }
     }
   } catch (err) {
-    console.error("Timetable Cron Error:", err);
+    console.log("Timetable Cron Error:", err);
   }
 
   console.log("Timetable Cron Completed");

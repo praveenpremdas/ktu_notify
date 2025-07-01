@@ -197,7 +197,7 @@ async function runCalendarCronJob() {
       }
     }
   } catch (err) {
-    console.error("Academic Calendar Cron Error:", err);
+    console.log("Academic Calendar Cron Error:", err);
   }
 
   console.log("Academic Calendar Cron Completed");

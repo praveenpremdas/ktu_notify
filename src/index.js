@@ -62,7 +62,7 @@ const safeRun = (fn, jobName, intervalMs) => () => {
           await sendTelegramMessage(config.botToken, config.channelID, `${logPrefix} completed`);
         }
       } catch (err) {
-        console.error(`${logPrefix} failed:`, err.message);
+        console.log(`${logPrefix} failed:`, err.message);
 
         try {
           const config = await LogConfig.findOne();
@@ -74,7 +74,7 @@ const safeRun = (fn, jobName, intervalMs) => () => {
             );
           }
         } catch (innerErr) {
-          console.error("Failed to fetch config or send Telegram error:", innerErr.message);
+          console.log("Failed to fetch config or send Telegram error:", innerErr.message);
         }
       }
     });

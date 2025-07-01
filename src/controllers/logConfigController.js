@@ -23,7 +23,7 @@ exports.updateLogConfig = async (req, res) => {
 
     res.status(200).json({ message: 'Log configuration updated', config: logConfig });
   } catch (err) {
-    console.error('Update log config error:', err);
+    console.log('Update log config error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 };
@@ -38,7 +38,7 @@ exports.getLogConfig = async (req, res) => {
 
     res.status(200).json({ config: logConfig });
   } catch (err) {
-    console.error('Fetch log config error:', err);
+    console.log('Fetch log config error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 };

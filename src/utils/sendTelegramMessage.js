@@ -8,7 +8,7 @@ const sendTelegramMessage = async (botToken, channelID, message) => {
       text: message,
     });
   } catch (error) {
-    console.error("Failed to send message to Telegram:", error.message);
+    console.log("Failed to send message to Telegram:", error.message);
   }
 };
 
