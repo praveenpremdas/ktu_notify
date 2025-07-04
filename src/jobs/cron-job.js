@@ -195,7 +195,6 @@ async function runCronJob() {
         });
 
         for (const ann of announcements) {
-          console.log(ann)
           const exists = await Notification.findOne({
             telegramConfigId: config._id,
             title: ann.title,
