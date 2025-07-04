@@ -188,7 +188,14 @@ async function runCronJob() {
       if (config.notificationEnabled) {
         const announcements = await scrapeKTUAnnouncements(config.notificationURL);
 
-        for (const ann of announcements.slice(0, 5)) {
+        announcements.sort((a, b) => {
+          const dateA = new Date(a.date);
+          const dateB = new Date(b.date);
+          return dateB - dateA; // Descending order (latest first)
+        });
+
+        for (const ann of announcements) {
+          console.log(ann)
           const exists = await Notification.findOne({
             telegramConfigId: config._id,
             title: ann.title,

@@ -164,7 +164,7 @@ async function runTimetableCronJob() {
 
       const entries = await scrapeTimetable(config.timtableURL);
 
-      for (const entry of entries.slice(0, 5)) {
+      for (const entry of entries) {
         const exists = await TimetableUpdate.findOne({
           telegramConfigId: config._id,
           title: entry.title,

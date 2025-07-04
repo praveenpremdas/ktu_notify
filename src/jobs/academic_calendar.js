@@ -168,8 +168,13 @@ async function runCalendarCronJob() {
 
     for (const [key, config] of configs.configs.entries()) {
       if (!config.calenderUpdateEnabled) continue;
-      const entries = await scrapeAcademicCalendar(config.calenderURL);
-      for (const entry of entries.slice(0, 5)) {
+      let entries = await scrapeAcademicCalendar(config.calenderURL);
+
+      entries = [...entries].sort((a, b) => {
+        return new Date(b.date) - new Date(a.date);
+      });
+
+      for (const entry of entries) {
         const exists = await AcademicCalendar.findOne({
           telegramConfigId: config._id,
           title: entry.title,
